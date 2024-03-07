@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "group-assignment"
+version = "0.1.0"
+description = ""
+authors = ["jprodriguez97 <jprodriguez97@hotmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+ruff = "^0.3.0"
+pandas = "^2.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
