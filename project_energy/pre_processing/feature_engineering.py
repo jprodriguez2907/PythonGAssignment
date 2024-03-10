@@ -80,4 +80,6 @@ final_data = final_data.drop(indices_to_drop)
 
 #Save final features into another table in SQLite database
 with SessionLocal() as session:
-    final_data.to_sql("final_data", session.get_bind(), if_exists="replace", index=False)
+    final_data.to_sql("final_data", session.get_bind(), if_exists="replace", index=True)
+
+final_data.head()

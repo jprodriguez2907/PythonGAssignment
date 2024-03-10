@@ -1,40 +1,41 @@
 # Import libraries
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mape
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import TimeSeriesSplit
+from sqlalchemy import create_engine
 from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
-from sqlalchemy import text
 import pandas as pd
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
+# Define the database URI
+DB_URI = "sqlite:///C:/Users/User/Desktop/MBD/Term2/PythonII/Group_Assignment/data/processed/database_energy.db"
 
-#Load cleaned data from SQLite database into Python object
-query = text("SELECT * FROM cleaned_data")
+# Create SQLAlchemy engine
+engine = create_engine(DB_URI)
 
-with SessionLocal() as session:
-    df_from_database = pd.DataFrame(session.execute(query))
+# Read data from the database table
+energy_df = pd.read_sql_table("final_data", engine)
 
-df.head()
+# Define target variable and features
+target = 'price actual'
+y = energy_df[target]
+X = energy_df.drop(columns=['price actual','date'])
 
-df.info()
+# Define test index based on the last 6 months of data
+test_index = energy_df["date"].iloc[-1] - pd.DateOffset(months=6)
 
-df.isna().sum()
+# Split data into training and testing sets
+X_train, X_test = X.loc[energy_df['date'] < test_index], X.loc[energy_df['date'] >= test_index]
+y_train, y_test = y.loc[energy_df['date'] < test_index], y.loc[energy_df['date'] >= test_index]
+test_dates = energy_df.loc[energy_df['date'] >= test_index, 'date']
 
-target = 'price_actual'
+# Define time series cross-validation strategy
+tscv = TimeSeriesSplit(n_splits=5)
 
-y = df[target]
-X = df.drop(columns=target)
-
-#scale_X = MinMaxScaler(feature_range=(0, 1))
-#scale_y = MinMaxScaler(feature_range=(0, 1))
-#scale_X.fit(X[:train_end_idx])
-#scale_y.fit(y[:train_end_idx])
-
-
-X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2,random_state=7)
-
-
-# Define the search space
+# Define the search space for hyperparameters
 param_grid = {
     'n_estimators': [100, 200, 300],
     'max_depth': [3, 5, 7],
@@ -47,7 +48,7 @@ param_grid = {
 model_XGB = XGBRegressor()
 
 # Create a GridSearchCV instance
-grid_search = GridSearchCV(estimator=model_XGB, param_grid=param_grid, scoring='neg_mean_squared_error', cv=5)
+grid_search = GridSearchCV(estimator=model_XGB, param_grid=param_grid, scoring='neg_mean_squared_error', cv=tscv)
 
 # Train the model on the training set
 grid_search.fit(X_train, y_train)
@@ -64,17 +65,16 @@ best_score = grid_search.best_score_
 # Print the best score
 print("Best score:", best_score)
 
-# Evaluate the model on the test set
-y_pred = grid_search.predict(X_test)
+# Evaluate the best model on the test set
+best_model = grid_search.best_estimator_
+y_pred = best_model.predict(X_test)
 
 # Calculate RMSE, MAPE, MAE and MSE for train and test sets
-train_rmse = mean_squared_error(y_train, grid_search.predict(X_train), squared=False)
-train_mape = mape(y_train, grid_search.predict(X_train))
-train_mae = mean_absolute_error(y_train, grid_search.predict(X_train))
-train_mse = mean_squared_error(y_train, grid_search.predict(X_train))
+train_rmse = mean_squared_error(y_train, best_model.predict(X_train), squared=False)
+train_mae = mean_absolute_error(y_train, best_model.predict(X_train))
+train_mse = mean_squared_error(y_train, best_model.predict(X_train))
 
 test_rmse = mean_squared_error(y_test, y_pred, squared=False)
-test_mape = mape(y_test, y_pred)
 test_mae = mean_absolute_error(y_test, y_pred)
 test_mse = mean_squared_error(y_test, y_pred)
 
@@ -82,99 +82,65 @@ test_mse = mean_squared_error(y_test, y_pred)
 print("-" * 50)
 print("Train Results:")
 print("RMSE:", train_rmse)
-print("MAPE:", train_mape)
 print("MAE:", train_mae)
 print("MSE:", train_mse)
 
 print("-" * 50)
 print("Test Results:")
 print("RMSE:", test_rmse)
-print("MAPE:", test_mape)
 print("MAE:", test_mae)
 print("MSE:", test_mse)
 
-# Feature importance
-feature_importances = model_XGB.feature_importances_
+# Feature importance (if the model supports it)
+if hasattr(best_model, 'feature_importances_'):
+    feature_importances = best_model.feature_importances_
 
-# Print the feature importances
-print("-" * 50)
-print("Feature importances:")
-for i, importance in enumerate(feature_importances):
-    print(f"{i+1}. {X_train.columns[i]}: {importance}")
+    # Print the feature importances
+    print("-" * 50)
+    print("Feature importances:")
+    for i, importance in enumerate(feature_importances):
+        print(f"{i+1}. {X_train.columns[i]}: {importance}")
+else:
+    print("The selected model does not support feature importances.")
 
 
-# Define the time
-time = np.arange(len(y_test))
+# Define a function to predict next price energy
+def predict_next_price_energy(X, model, n_periods):
+    X_pred = X.copy()
+    y_pred = np.zeros(n_periods)
 
-# Create the figure and axes
-fig, ax = plt.subplots(figsize=(10, 6))
+    lag_columns = ['price(t-' + str(i) + ')' for i in range(1, 13)]
 
-# Plot the real values and predictions
-ax.plot(time, y_test, label="Real Values")
-ax.plot(time, y_pred, label="Predictions")
+    for i in range(n_periods):
+        X_pred = pd.concat([X_pred, X_pred.iloc[-1:, :]], axis=0, ignore_index=True)
+        y_pred[i] = model.predict(X_pred.iloc[-1:])
+        for j in range(1, 13):
+            lag_column = f'price(t-{j})'
+            X_pred[lag_column].iloc[-1] = X_pred[lag_column].iloc[-2]
+        X_pred[lag_columns[0]].iloc[-1] = y_pred[i]
 
-# Customize the plot
-ax.set_xlabel("Time")
-ax.set_ylabel("Value")
-ax.legend()
+    return X_pred, y_pred
 
-# Show the plot
+# Predict next price energy
+X_pred, y_pred = predict_next_price_energy(X_train, grid_search.best_estimator_, n_periods=12)
+
+# Concatenate the predictions to the original dataframe
+y_pred = pd.concat([y_train, pd.Series(y_pred)], axis=0)
+y_true = pd.concat([y_train, y_test.iloc[0:16]], axis=0)
+time = pd.concat([energy_df.loc[energy_df['date'] < test_index, 'date'], test_dates.iloc[0:16]], axis=0)
+
+# Get the last 60 values for plotting
+last_60_idx = -60
+y_pred_last_60 = y_pred.iloc[last_60_idx:]
+y_true_last_60 = y_true.iloc[last_60_idx:]
+time_last_60 = time.iloc[last_60_idx:]
+
+# Plot the results
+fig, ax = plt.subplots(figsize=(15, 5))
+ax.plot(time_last_60, y_pred_last_60, label='Prediction', color='dodgerblue')
+ax.plot(time_last_60, y_true_last_60, label='True', color='darkorange')
+ax.set_title('Price of energy: True vs Predicted', fontsize=16)
+ax.set_ylabel('Price of energy', fontsize=14)
+ax.set_xlabel('Date', fontsize=14)
+plt.legend()
 plt.show()
-
-'''
-idx = 200
-aa=[x for x in range(idx)]
-plt.figure(figsize=(8,4))
-plt.plot(aa, Y_test[:idx], marker='.', label="actual")
-plt.plot(aa, test_predict[:idx], 'r', label="prediction")
-# plt.tick_params(left=False, labelleft=True) #remove ticks
-plt.tight_layout()
-sns.despine(top=True)
-plt.subplots_adjust(left=0.07)
-plt.ylabel('TOTAL Load', size=15)
-plt.xlabel('Time step', size=15)
-plt.legend(fontsize=15)
-plt.show();
-
-
-# Import libraries
-import numpy as np
-import pandas as pd
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.stattools import acf, pacf
-from statsmodels.stats.diagnostic import adfuller, normal_ad
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-
-# Auto-ARIMA
-model_arima = auto_arima(y_train, seasonal=True, trace=True)
-
-# Predict ARIMA
-predictions_arima = model_arima.predict(start=test.index[0], end=test.index[-1])
-
-
-
-# Plot the time series
-plt.plot(y)
-plt.xlabel('Date')
-plt.ylabel('Value')
-plt.show()
-
-# Plot the ACF and PACF
-plot_acf(y, lags=40)
-plt.show()
-plot_pacf(y, lags=40)
-plt.show()
-
-# Perform the ADF test for stationarity
-adf_result = adfuller(y)
-print('ADF test:', adf_result[0])
-
-# Perform the Shapiro test for normality
-shapiro_result = normal_ad(y)
-print('Shapiro test:', shapiro_result[1])
-
-# Perform the Box test for normality of the residuals
-box_result = box_ljung(y, lags=40)
-print('Box test:', box_result[1])
-
-'''
