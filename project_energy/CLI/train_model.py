@@ -1,38 +1,30 @@
-# Import necessary libraries
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import mean_squared_error
-#from database_session import SessionLocal
-from catboost import CatBoostRegressor
-from lightgbm import LGBMRegressor
-from xgboost import XGBRegressor
-from sqlalchemy.sql import text
-from typer import Typer, Option
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import joblib
+from sklearn.metrics import mean_squared_error
+from sqlalchemy.sql import text
+from typer import Typer, Option
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from catboost import CatBoostRegressor
+from lightgbm import LGBMRegressor
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Initialize Typer app
 app = Typer()
 
-#Create database and session
+# Create database and session
 DB_URI = "sqlite:///../../data/processed/database_energy.db"
-
 engine = create_engine(DB_URI, pool_pre_ping=True)
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @app.command()
-def train_model(model_name: str = Option(..., "--model_name", "-m",help="Choose a model to be used for training from RandomForest, XGBoost, LightGBM or CatBoost"),
-                         initial_date: str = Option(..., "--date", "-d",help="Date up to which data is used for training (YYYY.MM.DD)"),
-                         random_state: int = Option(42, "--random_state", "-r",help="Choose a random state for your model")):
+def Train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Choose a model to be used for training from RandomForest, XGBoost, LightGBM, or CatBoost"),
+                initial_date: str = Option(..., "--date", "-d", help="Date up to which data is used for training (YYYY.MM.DD)"),
+                random_state: int = Option(42, "--random_state", "-r", help="Choose a random state for your model")):
     """
-    Trains a Tree Based Machine Learning Model (RandomForestRegressor, XGBoost,LGBM or CatBoost) with data up to a given initial date and saves the trained model to a file.
+    Trains a Tree Based Machine Learning Model (RandomForestRegressor, XGBoost, LightGBM, or CatBoost) with data up to a given initial date and saves the trained model to a file.
     """
     # Load data from SQLite database
     query = text("SELECT * FROM final_data")
@@ -44,14 +36,12 @@ def train_model(model_name: str = Option(..., "--model_name", "-m",help="Choose 
     initial_date = pd.to_datetime(initial_date)
     data["date"] = pd.to_datetime(data["date"])
 
-
     # Filter data up to the initial date for training
     train = data[data["date"] < initial_date]
 
     # Define features and target
     X_train = train.drop(columns=["price actual", "date"])
     y_train = train["price actual"]
-
 
     # Initialize and train the corresponding model
     if model_name == 'RandomForest':
@@ -107,7 +97,6 @@ def train_model(model_name: str = Option(..., "--model_name", "-m",help="Choose 
         'MSE': mse,
         'Feature Importances': sorted_importance_dict
     }
-
 
 if __name__ == "__main__":
     app()

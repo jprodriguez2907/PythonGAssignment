@@ -1,52 +1,45 @@
-from typer import Typer, Option
-#from database_session import SessionLocal
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
-import pandas as pd
-import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings('ignore')
 
-app = Typer()
-
-#Create database and session
+# Create database and session
 DB_URI = "sqlite:///../../data/processed/database_energy.db"
-
 engine = create_engine(DB_URI, pool_pre_ping=True)
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def Plot_predictions_ML(start_date, end_date):
+    st.title('Plot Predictions for ML Models')
 
-
-@app.command()
-def plot_predictions():
-    """
-    plots predicted and actual energy prices
-    """
     # Load predicted and actual values from database
     query = text("SELECT * FROM predictions")
     with SessionLocal() as session:
         predictions = pd.DataFrame(session.execute(query).fetchall())
         predictions.columns = [column[0] for column in session.execute(query).cursor.description]
 
-    #Ensure column date is in date format
+    # Ensure column date is in date format
     predictions['date'] = pd.to_datetime(predictions['date'])
+    start_date = pd.to_datetime(start_date)
+    end_date = pd.to_datetime(end_date)
 
-    # Plot actual vs predicted energy prices
-    plt.figure(figsize=(12, 6))
-    plt.plot(predictions["date"], predictions['actual_energy_price'], label='Actual Energy Price', color='blue', marker='o')
-    plt.plot(predictions["date"], predictions['predicted_energy_price'], label='Predicted Energy Price', color='red', linestyle='--',
+    # Filter data by date range
+    filtered_predictions = predictions[(predictions['date'] >= start_date) & (predictions['date'] <= end_date)]
+
+    # Plotear datos
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(filtered_predictions["date"], filtered_predictions['actual_energy_price'], label='Actual Energy Price', color='blue', marker='o')
+    ax.plot(filtered_predictions["date"], filtered_predictions['predicted_energy_price'], label='Predicted Energy Price', color='red', linestyle='--',
              marker='x')
-    plt.title('Actual vs Predicted Energy Prices')
-    plt.xlabel('Date')
-    plt.ylabel('Energy Price')
-    plt.legend()
+    ax.set_title('Actual vs Predicted Energy Prices')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Energy Price')
+    ax.legend()
     plt.tight_layout()
-    plt.show()
-
-
+    st.pyplot()
 
 if __name__ == "__main__":
-    app()
+    main()

@@ -8,9 +8,9 @@ The CLI should also be accessible through the command: ``PythonGAssignment``.
 
 from typer import Typer
 
-from project_energy.CLI.train_model import app as train_model
-from project_energy.CLI.predict import app as predict
-from project_energy.CLI.plot_predictions import app as plot_predictions
+from project_energy import app as train_model
+from project_energy import app as predict
+from project_energy import app as plot_predictions
 
 app = Typer()
 

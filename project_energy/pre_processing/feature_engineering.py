@@ -13,7 +13,8 @@ with SessionLocal() as session:
 #Drop columns for which all values are equal to zero
 final_data = df_from_database.drop(columns=["generation fossil coal-derived gas", "generation fossil oil shale", "generation fossil peat", "generation geothermal", "generation marine", "generation wind offshore"])
 
-
+#Drop variables with data leakage
+data = df_from_database.drop(columns=['forecast solar day ahead', 'forecast wind onshore day ahead', 'total load forecast', 'total load actual', 'price day ahead'])
 #Change column time to datetime again
 final_data['time'] = pd.to_datetime(final_data['time'], utc=True)
 

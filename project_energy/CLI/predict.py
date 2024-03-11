@@ -2,35 +2,26 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from typer import Typer, Option
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-#from database_session import SessionLocal
-from sqlalchemy.sql import text
 import pandas as pd
 import numpy as np
 import joblib
 
 app = Typer()
 
-#Create database and session
+# Create database and session
 DB_URI = "sqlite:///../../data/processed/database_energy.db"
-
 engine = create_engine(DB_URI, pool_pre_ping=True)
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
+SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 
 @app.command()
-def predict(date: str = Option(..., "--date", "-d",
-                               help="The date as of which to make predictions (YYYY.MM.DD)")):
+def Predict_ML(date: str = Option(..., "--date", "-d", help="The date as of which to make predictions (YYYY.MM.DD)")):
     """
-    predicts energy prices as of given date, and saves actual and predicted values to database
+    Predict energy prices as of a given date and save actual and predicted values to the database.
     """
     # Load data from SQLite database
-    query = text("SELECT * FROM final_data")
+    query = "SELECT * FROM final_data"
     with SessionLocal() as session:
-        data = pd.DataFrame(session.execute(query).fetchall())
-        data.columns = [column[0] for column in session.execute(query).cursor.description]
+        data = pd.read_sql_query(query, session.bind)
 
     # Turn input date into datetime
     initial_date = pd.to_datetime(date)
@@ -61,8 +52,33 @@ def predict(date: str = Option(..., "--date", "-d",
         predictions_df.to_sql("predictions", session.get_bind(), if_exists="replace", index=False)
     print("Predictions saved to table predictions")
 
+    # Calculate evaluation metrics
+    mse = mean_squared_error(y_test, predictions)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test, predictions)
+
+    # Display evaluation metrics
+    print("Evaluation metrics:")
+    print(f"MSE: {mse}")
+    print(f"RMSE: {rmse}")
+    print(f"MAE: {mae}")
+
     return predictions_df
 
+# Function to calculate MSE
+def calculate_mse(predictions_df):
+    mse = np.mean((predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]) ** 2)
+    return mse
+
+# Function to calculate RMSE
+def calculate_rmse(predictions_df):
+    rmse = np.sqrt(np.mean((predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]) ** 2))
+    return rmse
+
+# Function to calculate MAE
+def calculate_mae(predictions_df):
+    mae = np.mean(np.abs(predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]))
+    return mae
 
 
 if __name__ == "__main__":
