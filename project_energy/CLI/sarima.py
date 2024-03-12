@@ -37,11 +37,21 @@ def train_model(data, start_date, num_days):
 # Function to visualize ACF and PACF plots
 def plot_acf_pacf(y):
     fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+    fig.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
+
+    for axes in ax:
+        axes.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
+        axes.tick_params(axis='x', colors='white')  # X-axis ticks in white color
+        axes.tick_params(axis='y', colors='white')  # Y-axis ticks in white color
+
     plot_acf(y, lags=40, ax=ax[0])
     ax[0].set_title('Autocorrelation Function (ACF)')
+
     plot_pacf(y, lags=40, ax=ax[1])
     ax[1].set_title('Partial Autocorrelation Function (PACF)')
+
     st.pyplot(fig)
+
 
 # Function to perform statistical tests
 def perform_statistical_tests(y, sar_model):
