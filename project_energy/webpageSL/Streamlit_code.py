@@ -3,14 +3,27 @@ import streamlit as st
 import pandas as pd
 import sys
 import seaborn as sns
+import os
+from typer import Typer
 
 # Add project directory to system path
-sys.path.append("C:\\Users\\User\\Desktop\\MBD\\Term2\\PythonII\\Group_Assignment\\project_energy\\CLI")
+
+app = Typer()
+
+#Create paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+CLI_path = os.path.join(grandparent_dir, 'project_energy', 'CLI')
+image1_path = os.path.join(grandparent_dir, 'data', 'raw', 'Energy.png')
+image2_path = os.path.join(grandparent_dir, 'data', 'raw', 'Energy2.jpg')
+
+sys.path.append(CLI_path)
 from corrmatrix import plot_correlation_matrix
 from pricevsfeatures import plot_actual_price_vs_feature
 from hist import plot_histogram
 from pricemonth import plot_monthprice
-from sarima import load_data, train_model, plot_acf_pacf, perform_statistical_tests
+from sarima import actual_predicted_SARIMA,train_model, plot_acf_pacf, perform_statistical_tests
 from train_model import train_model_ML
 from predict import Predict_ML, calculate_mse, calculate_rmse, calculate_mae
 from plot_predictions import Plot_predictions_ML
@@ -19,31 +32,25 @@ from plot_predictions import Plot_predictions_ML
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 # Apply styles
-st.markdown(
-    """
-    <style>
-    body {
-        background-color: rgb(245, 244, 241);
-    }
-    .reportview-container {
-        max-width: 90%;
-        padding-top: 2rem;
-        padding-right: 2rem;
-        padding-left: 2rem;
-        padding-bottom: 3rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 def main():
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.write('   ')
+
+    with col2:
+        st.image(image1_path, width=230, use_column_width=False)
+
+    with col3:
+        st.write(' ')
+
     # Title with larger font size
     st.markdown("<h1 style='text-align: center;'>Energy Price Project</h1>", unsafe_allow_html=True)
 
 
     # Create buttons for each page
-    pages = ["ML Models", "Technical Info", "EDA", "Beyond ML Models"]
+    pages = ["Machine Learning Models", "Technical Information", "Exploratory Data Analysis", "Beyond Machine Learning Models"]
 
     cols = st.columns(len(pages))
 
@@ -52,13 +59,16 @@ def main():
         if col.button(page):
             st.session_state.selected_page = page
 
+    if 'selected_page' not in st.session_state:
+        st.image(image2_path,
+                 use_column_width=True)
+
     if 'selected_page' in st.session_state:
         selected_page = st.session_state.selected_page
 
-        if selected_page == "ML Models":
+        if selected_page == "Machine Learning Models":
+            st.title("Machine Learning Models")
             st.write("""
-            ## ML Models
-
             Welcome to the ML Models page! Here you can explore various machine learning models and their predictions for energy price 
             forecasting. Choose from RandomForest, XGBoost, LightGBM, and CatBoost.
 
@@ -132,10 +142,9 @@ def main():
                 "Feel free to experiment with different models, start dates, and random states to see how they impact the predictions. ")
 
 
-        elif selected_page == "Technical Info":
+        elif selected_page == "Technical Information":
+            st.title("Technical Information")
             st.write("""
-            ## Technical Information
-
             In this section, you can find relevant technical details about the training and evaluation process of our Machine Learning model for predicting energy prices. Below, we present the best parameters of the model, along with the most important features used by the model for making predictions.
             """)
 
@@ -162,71 +171,75 @@ def main():
 
                 # Create bar plot
                 fig, ax = plt.subplots(figsize=(12, 50))  # Ajustar el tamaño de la figura
-                fig.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
-                ax.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
-                sns.barplot(x=feature_values, y=feature_names, ax=ax, palette="RdYlBu")
-                ax.set_xlabel('Importance', fontsize=20, color='white')
-                ax.set_ylabel('Feature', fontsize=20, color='white')
+                fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
+                ax.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
+
+                sns.barplot(x=feature_values, y=feature_names, ax=ax, palette='crest_r')
+                ax.set_xlabel('Importance', fontsize=20, color='#1c0858')
+                ax.set_ylabel('Feature', fontsize=20, color='#1c0858')
 
                 # Ajustar el tamaño de la fuente de los ticks
-                ax.tick_params(axis='x', labelsize=25, colors='white')  # Tamaño de fuente de los ticks del eje X
-                ax.tick_params(axis='y', labelsize=25, colors='white')  # Tamaño de fuente de los ticks del eje Y
+                ax.tick_params(axis='x', labelsize=25, colors='#1c0858')  # Tamaño de fuente de los ticks del eje X
+                ax.tick_params(axis='y', labelsize=25, colors='#1c0858')  # Tamaño de fuente de los ticks del eje Y
 
                 st.pyplot(fig)
 
-        elif selected_page == "Beyond ML Models":
-            st.write("Welcome to the Beyond ML Models page.")
+        elif selected_page == "Beyond Machine Learning Models":
+            st.title("SARIMA Model")
 
-            # Load data
-            data = load_data()
+            st.sidebar.write(
+                "To start,select the date from which you want to start making predictions, and then specify the number of days you would like to forecast into the future.")
 
             # Sidebar options
             start_date = st.sidebar.date_input("Start date", value=pd.to_datetime("2019-01-01"))
-            num_days = st.sidebar.slider("Number of days to predict", min_value=1, max_value=100, value=20)
+            num_days = st.sidebar.slider("Number of days to predict", min_value=1, max_value=1000, value=50)
 
-            # Train model and make predictions
-            y, y_pred, date_range, sar_model = train_model(data, start_date, num_days)
+            y, y_pred, date_range, sar_model = train_model(start_date, num_days)
 
             # Plot the graph
             st.subheader("Actual vs Predicted Values")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(data.index, data['price actual'], label='Actual values')
-            ax.plot(date_range, y_pred, label='Predicted values', color='red')
-            ax.set_xlabel('Date')
-            ax.set_ylabel('Electricity Price')
-            ax.legend()
-            fig.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
-            ax.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
-            ax.tick_params(axis='x', colors='white')  # X-axis ticks in white color
-            ax.tick_params(axis='y', colors='white')  # Y-axis ticks in white color
-            st.pyplot(fig)
+            st.write("Compares actual electricity prices with the predicted values using the SARIMA model depending of the parameters")
+            actual_predicted_SARIMA(y_pred, date_range)
 
             # Plot ACF and PACF
             st.subheader("Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF)")
+            st.write("Explore the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF) plots to analyze the time dependencies and lags in the data.")
+
             plot_acf_pacf(y)
 
             # Perform statistical tests
             st.subheader("Statistical Tests")
+
+            st.write("We conduct three key statistical tests to evaluate our SARIMA model:")
+
+            st.write("**1. Augmented Dickey-Fuller Test (ADF):** Checks for stationarity in time series data. A significance level of 0.5 indicates non-stationarity above and stationarity below.")
+
+            st.write("**2. Ljung-Box Test:** Assesses autocorrelation in residuals. Significance below 0.5 suggests autocorrelation present.")
+
+            st.write("**3. Shapiro-Wilk Test:** Tests normality of residuals. A p-value under 0.5 signifies deviation from normality.")
+
             perform_statistical_tests(y, sar_model)
 
-        elif selected_page == "EDA":
+        elif selected_page == "Exploratory Data Analysis":
             st.title("Exploratory Data Analysis (EDA)")
+
+            st.write(
+                "Explore our Energy and Climate EDA! Dive into our dataset spanning 2015-2019 for insights on energy generation, consumption, and climate. Uncover trends and patterns to inform decision-making. Let's explore together!")
 
             # Load data
             data = load_data()
 
             # List of available variables
-            variables = ['generation fossil brown coal/lignite', 'generation fossil gas',
-                         'generation fossil hard coal', 'generation fossil oil',
-                         'generation hydro pumped storage consumption',
-                         'generation hydro run-of-river and poundage',
-                         'generation hydro water reservoir', 'generation nuclear',
-                         'generation other', 'generation other renewable', 'generation solar',
-                         'generation waste', 'generation wind onshore',
-                         'forecast solar day ahead', 'forecast wind onshore day ahead',
-                         'total load forecast', 'total load actual', 'price day ahead',
-                         'price actual', 'winter', 'spring', 'summer', 'autumn']
+            variables = ['temp', 'temp_min', 'temp_max', 'pressure', 'humidity','wind_speed', 'wind_deg', 'rain_1h', 'rain_3h',
+                         'snow_3h', 'clouds_all','weather_id', 'generation biomass','generation fossil brown coal/lignite', 'generation fossil gas',
+                         'generation fossil hard coal', 'generation fossil oil','generation hydro pumped storage consumption',
+                         'generation hydro run-of-river and poundage','generation hydro water reservoir', 'generation nuclear','generation other',
+                         'generation other renewable', 'generation solar','generation waste', 'generation wind onshore','forecast solar day ahead',
+                         'forecast wind onshore day ahead','total load forecast', 'total load actual', 'price day ahead','price actual', 'winter',
+                         'spring', 'summer', 'autumn']
 
+            st.sidebar.write(
+                "Please select a variable and the desired frequency to explore insights from our dataset")
             # Show the list of variables in a selectbox in the sidebar
             selected_variable = st.sidebar.selectbox("Select variable:", variables)
 
@@ -236,15 +249,23 @@ def main():
             # Show the list of frequencies in a selectbox in the sidebar
             frequency_selected = st.sidebar.selectbox("Select frequency:", frequencies)
 
-            plot_actual_price_vs_feature(data, selected_variable, frequency_selected)
+            st.sidebar.write(
+                "Note: This selection will change the actual price vs feature and the histogram graph")
+            st.subheader(f'Actual Price vs {selected_variable} by date')
+            st.write("Track energy prices alongside any feature over different time spans - daily, weekly, monthly, or yearly")
+            plot_actual_price_vs_feature(selected_variable, frequency_selected)
 
-            plot_correlation_matrix(data)
+            st.subheader(f'Histogram of {selected_variable}')
+            st.write("Explore the frequency of your chosen feature with a histogram. Dive into insights with")
+            plot_histogram(selected_variable)
 
-            st.subheader("Histogram")
-            plot_histogram(data, selected_variable)
+            st.subheader('Correlation Matrix')
+            st.write("Delve into the correlation matrix heatmap to uncover connections among features")
+            plot_correlation_matrix()
 
             st.subheader("Monthly Price per year")
-            plot_monthprice(data)
+            st.write("Visualize the mean energy price by month over the years, gaining insights into seasonal fluctuations")
+            plot_monthprice()
 
 
 if __name__ == "__main__":

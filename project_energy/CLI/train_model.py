@@ -1,23 +1,35 @@
 import pandas as pd
 import joblib
 from sklearn.metrics import mean_squared_error
-from sqlalchemy.sql import text
-from typer import Typer, Option
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
+from sqlalchemy.sql import text
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from typer import Typer, Option
+import os
 
-# Initialize Typer app
 app = Typer()
 
-# Create database and session
-DB_URI = "sqlite:///../../data/processed/database_energy.db"
+#Create database and session
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
+db_path = os.path.join(processed_path, 'database_energy.db')
+db_path = processed_path.replace('\\', '/')
+
+DB_URI = f'sqlite:///{db_path}'
+
 engine = create_engine(DB_URI, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
 @app.command()
 def train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Choose a model to be used for training from RandomForest, XGBoost, LightGBM, or CatBoost"),
@@ -87,8 +99,11 @@ def train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Cho
     # Sort feature importances dictionary by importance values in descending order
     sorted_importance_dict = dict(sorted(feature_importance_dict.items(), key=lambda item: item[1], reverse=True))
 
+    save_model_path = os.path.join(grandparent_dir,'project_energy' , 'model', 'trained_modelCLI')
+    save_model_path = save_model_path.replace('\\', '/')
+
     # Save the trained model to a file
-    joblib.dump(grid_search.best_estimator_, "../model/trained_modelCLI")
+    joblib.dump(grid_search.best_estimator_, save_model_path)
     print("Model saved")
 
     return {
@@ -98,5 +113,5 @@ def train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Cho
         'Feature Importances': sorted_importance_dict
     }
 
-#if __name__ == "__main__":
-#    app()
+if __name__ == "__main__":
+    app()

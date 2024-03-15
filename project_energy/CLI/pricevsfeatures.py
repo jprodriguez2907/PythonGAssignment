@@ -2,14 +2,38 @@ from sqlalchemy import create_engine
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
+from sqlalchemy.sql import text
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from typer import Typer
+import os
 
-def load_data():
-    DB_URI = "sqlite:///C:/Users/User/Desktop/MBD/Term2/PythonII/Group_Assignment/data/processed/database_energy.db"
-    engine = create_engine(DB_URI)
-    data = pd.read_sql_table("final_data", engine)
-    return data
+app = Typer()
 
-def plot_actual_price_vs_feature(data, feature, frequency):
+#Create database and session
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
+db_path = os.path.join(processed_path, 'database_energy.db')
+db_path = processed_path.replace('\\', '/')
+
+DB_URI = f'sqlite:///{db_path}'
+
+engine = create_engine(DB_URI, pool_pre_ping=True)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+def plot_actual_price_vs_feature(feature, frequency):
+
+    # Load data from SQLite database
+    query = text("SELECT * FROM final_data")
+    with SessionLocal() as session:
+        data = pd.DataFrame(session.execute(query).fetchall())
+        data.columns = [column[0] for column in session.execute(query).cursor.description]
+
     # Group data based on frequency
     if frequency == 'daily':
         pass  # No se realiza ningún agrupamiento
@@ -29,27 +53,25 @@ def plot_actual_price_vs_feature(data, feature, frequency):
 
     # Create the figure and first y-axis
     fig, ax1 = plt.subplots(figsize=(10, 6))
-    fig.set_facecolor((0.054901960784313725, 0.06666666666666667, 0.09411764705882353))
+    fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
 
     # Plot the actual price on the first y-axis
-    ax1.plot(x, y, color='tab:blue', label="Actual Price")
-    ax1.set_xlabel("Date")
-    ax1.set_ylabel("Actual Price", color='tab:blue', fontsize=18)
-    ax1.tick_params(axis='y', labelcolor='tab:blue')
+    ax1.plot(x, y, color='#1c0858', label="Actual Price")
+    ax1.set_xlabel("Date", color='#1c0858', fontsize=18)
+    ax1.set_ylabel("Actual Price", color='#1c0858', fontsize=18)
+    ax1.tick_params(axis='y', labelcolor='#1c0858')
 
     # Create the second y-axis (twin axis)
     ax2 = ax1.twinx()
 
     # Plot the feature on the second y-axis
-    ax2.plot(x, feature_data, color='tab:red', label=feature)
-    ax2.set_ylabel(feature, color='tab:red',fontsize=18)
-    ax2.tick_params(axis='y', labelcolor='tab:red')
+    ax2.plot(x, feature_data, color="#0d9240", label=feature)
+    ax2.set_ylabel(feature, color="#0d9240",fontsize=18)
+    ax2.tick_params(axis='y', labelcolor="#0d9240")
 
     # Add title and legend
-    plt.title("Actual Price vs. " + feature, color="white", fontsize=35)
-    ax1.set_facecolor((0.054901960784313725, 0.06666666666666667,
-                       0.09411764705882353))
-    ax1.tick_params(axis='x', colors='white')  # X-axis ticks in white color
+    ax1.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
+    ax1.tick_params(axis='x', colors='#1c0858')  # X-axis ticks in white color
     fig.tight_layout()
 
     # Display the plot in Streamlit
