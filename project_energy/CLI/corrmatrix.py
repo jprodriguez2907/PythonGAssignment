@@ -45,5 +45,6 @@ def plot_correlation_matrix():
     ax.tick_params(axis='y', colors='#1c0858',labelsize=30, rotation=45)  # Y-axis ticks in white color
     st.pyplot(fig)
 
+
 if __name__ == "__main__":
     main()
