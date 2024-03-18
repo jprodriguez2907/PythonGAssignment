@@ -16,7 +16,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
 processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
-db_path = os.path.join(processed_path, 'database_energy.db')
 db_path = processed_path.replace('\\', '/')
 
 DB_URI = f'sqlite:///{db_path}'
@@ -27,7 +26,8 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
-def Plot_predictions_ML(start_date, end_date, num_days_predicted):
+@app.command()
+def plot_predictions_ML(start_date, end_date, num_days_predicted):
     # Load predicted and actual values from database
     query = text("SELECT * FROM predictions")
     with SessionLocal() as session:

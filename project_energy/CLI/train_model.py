@@ -32,7 +32,7 @@ SessionLocal = sessionmaker(
 )
 
 @app.command()
-def train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Choose a model to be used for training from RandomForest, XGBoost, LightGBM, or CatBoost"),
+def train_model_ML(model_name: str = Option(..., "--model_name", "-mn", help="Choose a model to be used for training from RandomForest, XGBoost, LightGBM, or CatBoost"),
                 initial_date: str = Option(..., "--date", "-d", help="Date up to which data is used for training (YYYY.MM.DD)"),
                 random_state: int = Option(42, "--random_state", "-r", help="Choose a random state for your model")):
     """
@@ -114,4 +114,4 @@ def train_model_ML(model_name: str = Option(..., "--model_name", "-m", help="Cho
     }
 
 if __name__ == "__main__":
-    app()
+   app()

@@ -19,7 +19,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
 processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
-db_path = os.path.join(processed_path, 'database_energy.db')
 db_path = processed_path.replace('\\', '/')
 
 DB_URI = f'sqlite:///{db_path}'
@@ -32,6 +31,7 @@ SessionLocal = sessionmaker(
 )
 
 # Function to train the SARIMA model and make predictions
+@app.command()
 def train_model(start_date, num_days):
 
     # Load data from SQLite database
@@ -58,6 +58,7 @@ def train_model(start_date, num_days):
     return y, y_pred, date_range, sar_model
 
 # Function to visualize ACF and PACF plots
+@app.command()
 def plot_acf_pacf(y):
     fig, ax = plt.subplots(2, 1, figsize=(10, 8))
     fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
@@ -77,6 +78,7 @@ def plot_acf_pacf(y):
 
 
 # Function to perform statistical tests
+@app.command()
 def perform_statistical_tests(y, sar_model):
     # Augmented Dickey-Fuller Test (ADF)
     adf_result = adfuller(y)
@@ -94,24 +96,45 @@ def perform_statistical_tests(y, sar_model):
         "P-value": [adf_result[1], shapiro_result[1]]
     }
     st.table(results_data)
-
-def actual_predicted_SARIMA (y_pred, date_range):
+@app.command()
+def visualize_forecast(start_date, forecast_steps):
     # Load data from SQLite database
     query = text("SELECT * FROM final_data")
     with SessionLocal() as session:
         data = pd.DataFrame(session.execute(query).fetchall())
         data.columns = [column[0] for column in session.execute(query).cursor.description]
 
+    data['date'] = pd.to_datetime(data['date'])
+    data.set_index('date', inplace=True)
+
+    target = 'price actual'
+    y = data[target]
+
+    # Filtrar los datos históricos hasta start_date
+    y_train = y[y.index <= start_date]
+
+    # Fit SARIMA model to historical data up to start_date
+    s = 7
+    sar_model = SARIMAX(endog=y_train, order=(1, 0, 2), seasonal_order=(1, 1, 2, s)).fit()
+
+    # Generar el rango de fechas para las predicciones
+    forecast_index = pd.date_range(start=start_date, periods=forecast_steps, freq='D')
+
+    # Hacer predicciones para el rango de fechas generado
+    forecast = sar_model.forecast(steps=forecast_steps)
+    forecast.index = forecast_index  # Asignar el índice de pronóstico al rango de fechas
+
+    # Plot actual values and predicted values
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(data.index, data['price actual'], label='Actual values', color='#1c0858')
-    ax.plot(date_range, y_pred, label='Predicted values', color="#0d9240")
-    ax.set_xlabel('Date', fontsize=15, color='#1c0858')
-    ax.set_ylabel('Electricity Price', fontsize=15, color='#1c0858')
-    ax.legend()
     fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
     ax.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
-    ax.tick_params(axis='x', colors='#1c0858')  # X-axis ticks in white color
-    ax.tick_params(axis='y', colors='#1c0858')  # Y-axis ticks in white color
+    ax.plot(y, label='Actual values', color='#1c0858')
+    ax.plot(forecast, label='Predicted values', color='#0d9240')
+    ax.set_xlabel('Date',fontsize=14, color='#1c0858')
+    ax.set_ylabel('Electricity price',fontsize=14, color='#1c0858')
+    ax.tick_params(axis='x', rotation=45, colors='#1c0858')
+    ax.tick_params(axis='y', rotation=45, colors='#1c0858')# Rotar las fechas en el eje x
+    ax.legend()
     st.pyplot(fig)
 
 if __name__ == "__main__":

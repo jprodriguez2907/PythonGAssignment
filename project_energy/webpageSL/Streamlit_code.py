@@ -23,10 +23,10 @@ from corrmatrix import plot_correlation_matrix
 from pricevsfeatures import plot_actual_price_vs_feature
 from hist import plot_histogram
 from pricemonth import plot_monthprice
-from sarima import actual_predicted_SARIMA,train_model, plot_acf_pacf, perform_statistical_tests
+from sarima import visualize_forecast,train_model, plot_acf_pacf, perform_statistical_tests
 from train_model import train_model_ML
-from predict import Predict_ML, calculate_mse, calculate_rmse, calculate_mae
-from plot_predictions import Plot_predictions_ML
+from predict import predict_ML, calculate_mse, calculate_rmse, calculate_mae
+from plot_predictions import plot_predictions_ML
 
 # Disable matplotlib's global pyplot warnings
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -90,6 +90,13 @@ def main():
 
             num_days_selected = st.sidebar.slider("Number of days to predict", min_value=1, max_value=1000, value=365)
 
+            # Layout for date inputs
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("Start Date", value=pd.to_datetime("2017-01-01"), format="YYYY-MM-DD")
+            with col2:
+                end_date = st.date_input("End Date", value=pd.to_datetime("2018-12-31"), format="YYYY-MM-DD")
+
             # Button to run the model
             if st.sidebar.button("Run Model"):
                 # Run the train_model function with user-selected parameters
@@ -99,21 +106,15 @@ def main():
                 st.session_state.train_model_output = train_model_output
 
                 # Run the predict command
-                predictions_df = Predict_ML(initial_date)
+                predictions_df = predict_ML(initial_date)
 
                 st.title('Plot Predictions for ML Models')
 
                 st.write("Select the starting and ending date for the graph that you would like to see")
 
-                # Layout for date inputs
-                col1, col2 = st.columns(2)
-                with col1:
-                    start_date = st.date_input("Start Date", value=pd.to_datetime("2017-01-01"), format="YYYY-MM-DD")
-                with col2:
-                    end_date = st.date_input("End Date", value=pd.to_datetime("2018-12-31"), format="YYYY-MM-DD")
 
                 # Plot predictions
-                Plot_predictions_ML(start_date, end_date,num_days_selected)
+                plot_predictions_ML(start_date, end_date,num_days_selected)
 
                 # Display the metrics
                 if predictions_df is not None:
@@ -199,7 +200,8 @@ def main():
             # Plot the graph
             st.subheader("Actual vs Predicted Values")
             st.write("Compares actual electricity prices with the predicted values using the SARIMA model depending of the parameters")
-            actual_predicted_SARIMA(y_pred, date_range)
+            start_date = pd.Timestamp(start_date)
+            visualize_forecast(start_date, num_days)
 
             # Plot ACF and PACF
             st.subheader("Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF)")
@@ -226,8 +228,6 @@ def main():
             st.write(
                 "Explore our Energy and Climate EDA! Dive into our dataset spanning 2015-2019 for insights on energy generation, consumption, and climate. Uncover trends and patterns to inform decision-making. Let's explore together!")
 
-            # Load data
-            data = load_data()
 
             # List of available variables
             variables = ['temp', 'temp_min', 'temp_max', 'pressure', 'humidity','wind_speed', 'wind_deg', 'rain_1h', 'rain_3h',
@@ -269,4 +269,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+   main()

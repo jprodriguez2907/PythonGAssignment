@@ -2,19 +2,41 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import TimeSeriesSplit
-from sqlalchemy import create_engine
 from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import warnings
+from sqlalchemy.sql import text
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from typer import Typer
+import os
 warnings.filterwarnings('ignore')
 
-# Define the database URI
-DB_URI = "sqlite:///C:/Users/User/Desktop/MBD/Term2/PythonII/Group_Assignment/data/processed/database_energy.db"
+app = Typer()
 
-# Create SQLAlchemy engine
-engine = create_engine(DB_URI)
+#Create database and session
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
+db_path = os.path.join(processed_path, 'database_energy.db')
+db_path = processed_path.replace('\\', '/')
+
+DB_URI = f'sqlite:///{db_path}'
+
+engine = create_engine(DB_URI, pool_pre_ping=True)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+query = text("SELECT * FROM final_data")
+with SessionLocal() as session:
+    energy_df = pd.DataFrame(session.execute(query).fetchall())
+    energy_df = [column[0] for column in session.execute(query).cursor.description]
 
 # Read data from the database table
 energy_df = pd.read_sql_table("final_data", engine)

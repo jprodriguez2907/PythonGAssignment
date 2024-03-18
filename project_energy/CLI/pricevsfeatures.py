@@ -15,7 +15,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
 processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
-db_path = os.path.join(processed_path, 'database_energy.db')
 db_path = processed_path.replace('\\', '/')
 
 DB_URI = f'sqlite:///{db_path}'
@@ -26,6 +25,7 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+@app.command()
 def plot_actual_price_vs_feature(feature, frequency):
 
     # Load data from SQLite database
@@ -34,21 +34,27 @@ def plot_actual_price_vs_feature(feature, frequency):
         data = pd.DataFrame(session.execute(query).fetchall())
         data.columns = [column[0] for column in session.execute(query).cursor.description]
 
+    # Convertir la columna de fecha en DatetimeIndex
+    data['date'] = pd.to_datetime(data['date'])
+
+    # Establecer la columna de fecha como índice
+    data.set_index('date', inplace=True)
+
     # Group data based on frequency
     if frequency == 'daily':
         pass  # No se realiza ningún agrupamiento
     elif frequency == 'weekly':
-        data = data.groupby(pd.Grouper(key='date', freq='W')).mean().reset_index()
+        data = data.groupby(pd.Grouper(freq='W')).mean().reset_index()
     elif frequency == 'monthly':
-        data = data.groupby(pd.Grouper(key='date', freq='M')).mean().reset_index()
+        data = data.groupby(pd.Grouper(freq='M')).mean().reset_index()
     elif frequency == 'yearly':
-        data = data.groupby(pd.Grouper(key='date', freq='Y')).mean().reset_index()
+        data = data.groupby(pd.Grouper(freq='Y')).mean().reset_index()
     else:
         raise ValueError("Frequency should be 'daily', 'weekly', 'monthly', or 'yearly'.")
 
     # Variables
     y = data["price actual"]
-    x = data["date"]
+    x = data.index  # Usar el índice de fecha como variable x
     feature_data = data[feature]
 
     # Create the figure and first y-axis
@@ -76,6 +82,7 @@ def plot_actual_price_vs_feature(feature, frequency):
 
     # Display the plot in Streamlit
     st.pyplot(fig)
+
 
 if __name__ == "__main__":
     main()

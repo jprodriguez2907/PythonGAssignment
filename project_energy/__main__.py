@@ -2,7 +2,6 @@
 
 With this module we enable the ``python -m PythonGAssignment`` functionality.
 
-The CLI should also be accessible through the command: ``PythonGAssignment``.
 """
 
 

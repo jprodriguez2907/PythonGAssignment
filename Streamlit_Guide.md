@@ -1,7 +1,5 @@
-# Energy Price Project Guide
-
-## Introduction
-Welcome to the Energy Price Project guide. Here, we offer a blend of casual conversation and technical insights to guide you through our project. Let's embark on this journey together!
+### Welcome to the Streamlit Guide for Energy Price Prediction Tool
+Here, we will show you how to walk around our Streamlit interface in order to use the energy price prediction tool
 
 ## Menu Options
 Upon arrival, you'll encounter a menu offering different pathways: ML Models, Technical Info, EDA, or Beyond. Choose the page that you want to see.
