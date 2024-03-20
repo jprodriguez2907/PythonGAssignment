@@ -2,9 +2,6 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.ensemble import RandomForestRegressor
-from xgboost import XGBRegressor
-from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 import pandas as pd
 import warnings
@@ -13,19 +10,22 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typer import Typer
 import os
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 app = Typer()
 
-#Create database and session
+# Create database and session
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
-processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
-db_path = os.path.join(processed_path, 'database_energy.db')
-db_path = processed_path.replace('\\', '/')
+processed_path = os.path.join(
+    grandparent_dir, "data", "processed", "database_energy.db"
+)
+db_path = os.path.join(processed_path, "database_energy.db")
+db_path = processed_path.replace("\\", "/")
 
-DB_URI = f'sqlite:///{db_path}'
+DB_URI = f"sqlite:///{db_path}"
 
 engine = create_engine(DB_URI, pool_pre_ping=True)
 SessionLocal = sessionmaker(
@@ -43,35 +43,43 @@ with SessionLocal() as session:
 energy_df = pd.read_sql_table("final_data", engine)
 
 # Define target variable and features
-target = 'price actual'
+target = "price actual"
 y = energy_df[target]
-X = energy_df.drop(columns=['price actual','date'])
+X = energy_df.drop(columns=["price actual", "date"])
 
 # Define test index based on the last 6 months of data
 test_index = energy_df["date"].iloc[-1] - pd.DateOffset(months=6)
 
 # Split data into training and testing sets
-X_train, X_test = X.loc[energy_df['date'] < test_index], X.loc[energy_df['date'] >= test_index]
-y_train, y_test = y.loc[energy_df['date'] < test_index], y.loc[energy_df['date'] >= test_index]
-test_dates = energy_df.loc[energy_df['date'] >= test_index, 'date']
+X_train, X_test = (
+    X.loc[energy_df["date"] < test_index],
+    X.loc[energy_df["date"] >= test_index],
+)
+y_train, y_test = (
+    y.loc[energy_df["date"] < test_index],
+    y.loc[energy_df["date"] >= test_index],
+)
+test_dates = energy_df.loc[energy_df["date"] >= test_index, "date"]
 
 # Define time series cross-validation strategy
 tscv = TimeSeriesSplit(n_splits=5)
 
 # Define the search space for hyperparameters
 param_grid = {
-    'n_estimators': [100, 200, 300],
-    'max_depth': [3, 5, 7],
-    'learning_rate': [0.1, 0.01, 0.001],
-    'gamma': [0, 0.1, 0.2],
-    'min_child_weight': [1, 3, 5]
+    "n_estimators": [100, 200, 300],
+    "max_depth": [3, 5, 7],
+    "learning_rate": [0.1, 0.01, 0.001],
+    "gamma": [0, 0.1, 0.2],
+    "min_child_weight": [1, 3, 5],
 }
 
 # Create an LGBM model
 model = LGBMRegressor(random_state=13)
 
 # Create a GridSearchCV instance
-grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=tscv)
+grid_search = GridSearchCV(
+    estimator=model, param_grid=param_grid, scoring="neg_mean_squared_error", cv=tscv
+)
 
 # Train the model on the training set
 grid_search.fit(X_train, y_train)

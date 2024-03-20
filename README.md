@@ -1,4 +1,6 @@
 # Overview
+Here is the link for the github repository: 
+https://github.com/jprodriguez2907/PythonGAssignment
 
 ## Project goal
 
@@ -137,4 +139,4 @@ Key documents for the project are included in the main directory. Besides, there
 1. Install poetry by running the following command: pip install poetry
 2. Using the terminal, navigate to the directory where the poetry.lock file is located
 3. Install dependencies by running the following command from the terminal: poetry install
-4. Verify dependencies were successfully installed by running the following command: poetry show
+4. Verify dependencies were successfully installed by running the following command:  poetry show

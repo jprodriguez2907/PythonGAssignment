@@ -14,7 +14,16 @@ Before proceeding with any data processing, several initial setup steps were com
 
 4. **Input Data and Resources:** Input data files, such as CSV datasets and images used in Streamlit, were organized in the `data/raw` directory. This directory structure ensures that all project resources are easily accessible and well-organized.
 
-## Step 1: Data Cleaning
+## Step 1: Database Session Setup
+The first step is to set up the database session to utilize the session and access the SQLite database created in `data_cleaning.py`. This session allows for interaction with the database using SQLAlchemy.
+
+```bash
+python database_session.py
+```
+
+This command initializes the database session, enabling further database operations.
+
+## Step 2: Data Cleaning
 Begin by cleaning the raw data to prepare it for further analysis. Run the `data_cleaning.py` script. This script loads the raw energy and weather datasets, performs data type conversions, handles duplicates, filters data for Madrid, merges datasets, handles missing values, drops irrelevant columns, replaces outliers, scales the variables, and finally loads the cleaned data into an SQLite database.
 
 To execute the data cleaning process, run the following command in your terminal:
@@ -26,14 +35,6 @@ python data_cleaning.py
 This script ensures that the data is in a suitable format for subsequent analysis and modeling tasks. Once executed, you can proceed to the next step
 
 
-## Step 2: Database Session Setup
-The next step is to set up the database session to utilize the session and access the SQLite database created in `data_cleaning.py`. This session allows for interaction with the database using SQLAlchemy.
-
-```bash
-python database_session.py
-```
-
-This command initializes the database session, enabling further database operations.
 
 ## Step 3: Feature Engineering
 Proceed with feature engineering to enhance the dataset for modeling purposes. Run the `feature_engineering.py` script to create new features and downsample the data from hourly to daily frequency.
@@ -51,6 +52,9 @@ Command Line Interfaces (CLIs) are simple text-based tools designed to perform s
 
 These CLIs are all run from our Streamlit code, but we'll provide an explanation of each one so you know what they do.
 
+If you want to run the CLIs directly from the terminal you have to be at the CLI Foulder, follow the next steps: 
+1. Go to the CLI folder with cd project C:\...\PythonGAssignment\project_energy\CLI
+2. Write the function that you want to use this command:  python "function_name" "parameters of the function"
 ### 4.1 train_model.py CLI
 The `train_model_ML.py` CLI trains tree-based machine learning models (RandomForestRegressor, XGBoost, LightGBM, or CatBoost) using data up to a specified initial date obtained from the SQLite database. 
 

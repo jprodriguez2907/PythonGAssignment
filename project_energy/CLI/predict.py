@@ -9,15 +9,17 @@ import os
 
 app = Typer()
 
-#Create database and session
+# Create database and session
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
-processed_path = os.path.join(grandparent_dir,'data', 'processed', 'database_energy.db')
-db_path = os.path.join(processed_path, 'database_energy.db')
-db_path = processed_path.replace('\\', '/')
+processed_path = os.path.join(
+    grandparent_dir, "data", "processed", "database_energy.db"
+)
+db_path = os.path.join(processed_path, "database_energy.db")
+db_path = processed_path.replace("\\", "/")
 
-DB_URI = f'sqlite:///{db_path}'
+DB_URI = f"sqlite:///{db_path}"
 
 engine = create_engine(DB_URI, pool_pre_ping=True)
 SessionLocal = sessionmaker(
@@ -25,8 +27,17 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+
+
 @app.command()
-def predict_ML(date: str = Option(..., "--date", "-d", help="The date as of which to make predictions (YYYY.MM.DD)")):
+def predict_ML(
+    date: str = Option(
+        ...,
+        "--date",
+        "-d",
+        help="The date as of which to make predictions (YYYY.MM.DD)",
+    ),
+):
     """
     Predict energy prices as of a given date and save actual and predicted values to the database.
     """
@@ -53,15 +64,22 @@ def predict_ML(date: str = Option(..., "--date", "-d", help="The date as of whic
     predictions = model.predict(X_test)
 
     # Create a DataFrame with predictions and index from test data
-    predictions_df = pd.DataFrame({
-        'date': test["date"],
-        'predicted_energy_price': predictions,
-        'actual_energy_price': test["price actual"]  # Add actual prices to the DataFrame
-    }, index=test.index)
+    predictions_df = pd.DataFrame(
+        {
+            "date": test["date"],
+            "predicted_energy_price": predictions,
+            "actual_energy_price": test[
+                "price actual"
+            ],  # Add actual prices to the DataFrame
+        },
+        index=test.index,
+    )
 
     # Save predictions to a CSV file in SQLite database
     with SessionLocal() as session:
-        predictions_df.to_sql("predictions", session.get_bind(), if_exists="replace", index=False)
+        predictions_df.to_sql(
+            "predictions", session.get_bind(), if_exists="replace", index=False
+        )
     print("Predictions saved to table predictions")
 
     # Calculate evaluation metrics
@@ -77,22 +95,44 @@ def predict_ML(date: str = Option(..., "--date", "-d", help="The date as of whic
 
     return predictions_df
 
+
 # Function to calculate MSE
 @app.command()
 def calculate_mse(predictions_df):
-    mse = np.mean((predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]) ** 2)
+    mse = np.mean(
+        (
+            predictions_df["predicted_energy_price"]
+            - predictions_df["actual_energy_price"]
+        )
+        ** 2
+    )
     return mse
+
 
 # Function to calculate RMSE
 @app.command()
 def calculate_rmse(predictions_df):
-    rmse = np.sqrt(np.mean((predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]) ** 2))
+    rmse = np.sqrt(
+        np.mean(
+            (
+                predictions_df["predicted_energy_price"]
+                - predictions_df["actual_energy_price"]
+            )
+            ** 2
+        )
+    )
     return rmse
+
 
 # Function to calculate MAE
 @app.command()
 def calculate_mae(predictions_df):
-    mae = np.mean(np.abs(predictions_df["predicted_energy_price"] - predictions_df["actual_energy_price"]))
+    mae = np.mean(
+        np.abs(
+            predictions_df["predicted_energy_price"]
+            - predictions_df["actual_energy_price"]
+        )
+    )
     return mae
 
 
