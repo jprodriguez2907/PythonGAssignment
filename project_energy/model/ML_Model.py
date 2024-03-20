@@ -2,10 +2,11 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import TimeSeriesSplit
+from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
-import matplotlib.pyplot as plt
+from catboost import CatBoostRegressor
+from lightgbm import LGBMRegressor
 import pandas as pd
-import numpy as np
 import warnings
 from sqlalchemy.sql import text
 from sqlalchemy import create_engine
@@ -66,11 +67,11 @@ param_grid = {
     'min_child_weight': [1, 3, 5]
 }
 
-# Create an XGBoost model
-model_XGB = XGBRegressor()
+# Create an LGBM model
+model = LGBMRegressor(random_state=13)
 
 # Create a GridSearchCV instance
-grid_search = GridSearchCV(estimator=model_XGB, param_grid=param_grid, scoring='neg_mean_squared_error', cv=tscv)
+grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_squared_error', cv=tscv)
 
 # Train the model on the training set
 grid_search.fit(X_train, y_train)
@@ -112,57 +113,3 @@ print("Test Results:")
 print("RMSE:", test_rmse)
 print("MAE:", test_mae)
 print("MSE:", test_mse)
-
-# Feature importance (if the model supports it)
-if hasattr(best_model, 'feature_importances_'):
-    feature_importances = best_model.feature_importances_
-
-    # Print the feature importances
-    print("-" * 50)
-    print("Feature importances:")
-    for i, importance in enumerate(feature_importances):
-        print(f"{i+1}. {X_train.columns[i]}: {importance}")
-else:
-    print("The selected model does not support feature importances.")
-
-
-# Define a function to predict next price energy
-def predict_next_price_energy(X, model, n_periods):
-    X_pred = X.copy()
-    y_pred = np.zeros(n_periods)
-
-    lag_columns = ['price(t-' + str(i) + ')' for i in range(1, 13)]
-
-    for i in range(n_periods):
-        X_pred = pd.concat([X_pred, X_pred.iloc[-1:, :]], axis=0, ignore_index=True)
-        y_pred[i] = model.predict(X_pred.iloc[-1:])
-        for j in range(1, 13):
-            lag_column = f'price(t-{j})'
-            X_pred[lag_column].iloc[-1] = X_pred[lag_column].iloc[-2]
-        X_pred[lag_columns[0]].iloc[-1] = y_pred[i]
-
-    return X_pred, y_pred
-
-# Predict next price energy
-X_pred, y_pred = predict_next_price_energy(X_train, grid_search.best_estimator_, n_periods=12)
-
-# Concatenate the predictions to the original dataframe
-y_pred = pd.concat([y_train, pd.Series(y_pred)], axis=0)
-y_true = pd.concat([y_train, y_test.iloc[0:16]], axis=0)
-time = pd.concat([energy_df.loc[energy_df['date'] < test_index, 'date'], test_dates.iloc[0:16]], axis=0)
-
-# Get the last 60 values for plotting
-last_60_idx = -60
-y_pred_last_60 = y_pred.iloc[last_60_idx:]
-y_true_last_60 = y_true.iloc[last_60_idx:]
-time_last_60 = time.iloc[last_60_idx:]
-
-# Plot the results
-fig, ax = plt.subplots(figsize=(15, 5))
-ax.plot(time_last_60, y_pred_last_60, label='Prediction', color='dodgerblue')
-ax.plot(time_last_60, y_true_last_60, label='True', color='darkorange')
-ax.set_title('Price of energy: True vs Predicted', fontsize=16)
-ax.set_ylabel('Price of energy', fontsize=14)
-ax.set_xlabel('Date', fontsize=14)
-plt.legend()
-plt.show()

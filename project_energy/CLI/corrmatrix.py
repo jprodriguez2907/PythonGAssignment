@@ -25,6 +25,8 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+
+# Define a command for plotting correlation matrix
 @app.command()
 def plot_correlation_matrix():
 
@@ -34,15 +36,18 @@ def plot_correlation_matrix():
         data = pd.DataFrame(session.execute(query).fetchall())
         data.columns = [column[0] for column in session.execute(query).cursor.description]
 
-    features_cor = data[list(data.columns[1:33])]
+    # Select features for correlation analysis
+    features_cor = data[list(data.columns[1:35])]
+
+    # Plotting the correlation matrix using Seaborn heatmap
     fig, ax = plt.subplots(figsize=(40, 40))
     fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
     ax.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
     ax.set_xlabel('Importance', fontsize=20, color='#1c0858')
     ax.set_ylabel('Feature', fontsize=20, color='#1c0858')
     sns.heatmap(round(features_cor.corr(), 1), annot=True, cmap='Greens', linewidth=0.9, ax=ax)
-    ax.tick_params(axis='x', colors='#1c0858', labelsize=30, rotation=45)   # X-axis ticks in white color
-    ax.tick_params(axis='y', colors='#1c0858',labelsize=30, rotation=45)  # Y-axis ticks in white color
+    ax.tick_params(axis='x', colors='#1c0858', labelsize=30)   # X-axis ticks in white color
+    ax.tick_params(axis='y', colors='#1c0858',labelsize=30)  # Y-axis ticks in white color
     st.pyplot(fig)
 
 

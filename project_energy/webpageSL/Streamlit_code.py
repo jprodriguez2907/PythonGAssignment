@@ -5,8 +5,7 @@ import sys
 import seaborn as sns
 import os
 from typer import Typer
-
-# Add project directory to system path
+st.set_page_config(layout="centered")
 
 app = Typer()
 
@@ -28,10 +27,8 @@ from train_model import train_model_ML
 from predict import predict_ML, calculate_mse, calculate_rmse, calculate_mae
 from plot_predictions import plot_predictions_ML
 
-# Disable matplotlib's global pyplot warnings
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-# Apply styles
 def main():
 
     col1, col2, col3 = st.columns(3)
@@ -160,9 +157,6 @@ def main():
                 st.dataframe(best_params_df.style.set_properties(**{'text-align': 'center'}).set_table_styles(
                     [dict(selector='th', props=[('text-align', 'center')])]))
 
-                # Display MSE
-                #st.write("MSE:", st.session_state.train_model_output['MSE'])
-
                 # Display Feature Importances in a vertical bar plot
                 st.write("## Feature Importance")
                 feature_importances = st.session_state.train_model_output['Feature Importances']
@@ -171,7 +165,7 @@ def main():
                 feature_values = [item[1] for item in sorted_feature_importances]
 
                 # Create bar plot
-                fig, ax = plt.subplots(figsize=(12, 50))  # Ajustar el tamaño de la figura
+                fig, ax = plt.subplots(figsize=(12, 50))
                 fig.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
                 ax.set_facecolor((0.9607843137254902, 0.9568627450980393, 0.9450980392156862))
 
@@ -179,9 +173,8 @@ def main():
                 ax.set_xlabel('Importance', fontsize=20, color='#1c0858')
                 ax.set_ylabel('Feature', fontsize=20, color='#1c0858')
 
-                # Ajustar el tamaño de la fuente de los ticks
-                ax.tick_params(axis='x', labelsize=25, colors='#1c0858')  # Tamaño de fuente de los ticks del eje X
-                ax.tick_params(axis='y', labelsize=25, colors='#1c0858')  # Tamaño de fuente de los ticks del eje Y
+                ax.tick_params(axis='x', labelsize=25, colors='#1c0858')
+                ax.tick_params(axis='y', labelsize=25, colors='#1c0858')
 
                 st.pyplot(fig)
 
@@ -256,7 +249,7 @@ def main():
             plot_actual_price_vs_feature(selected_variable, frequency_selected)
 
             st.subheader(f'Histogram of {selected_variable}')
-            st.write("Explore the frequency of your chosen feature with a histogram. Dive into insights with")
+            st.write("Take a deeper dive into the distribution and frequency analysis of your chosen feature by exploring it visually through a histogram ")
             plot_histogram(selected_variable)
 
             st.subheader('Correlation Matrix')

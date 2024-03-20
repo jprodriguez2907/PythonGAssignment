@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from datetime import date
 from database_session import SessionLocal
 
 #Load data
@@ -36,7 +35,6 @@ df_weather_filtered = df_weather[df_weather["city_name"] == 'Madrid']
 
 #Join the two data sets
 joined_df = pd.merge(df_weather_filtered, df_energy, on="time")
-
 
 #Investigate missing values
 numeric_df = joined_df.select_dtypes(include=['number'])

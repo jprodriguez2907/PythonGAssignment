@@ -76,7 +76,6 @@ def plot_acf_pacf(y):
 
     st.pyplot(fig)
 
-
 # Function to perform statistical tests
 @app.command()
 def perform_statistical_tests(y, sar_model):
@@ -89,13 +88,14 @@ def perform_statistical_tests(y, sar_model):
     # Shapiro-Wilk Test
     shapiro_result = shapiro(sar_model.resid)
 
-    # Crear una tabla con los resultados
+    # Create a table with the results
     results_data = {
         "Test": ["ADF", "Shapiro-Wilk" ,"Ljung-Box"],
         "Statistic": [adf_result[0], shapiro_result[0], box_result],
         "P-value": [adf_result[1], shapiro_result[1]]
     }
     st.table(results_data)
+
 @app.command()
 def visualize_forecast(start_date, forecast_steps):
     # Load data from SQLite database
@@ -110,19 +110,16 @@ def visualize_forecast(start_date, forecast_steps):
     target = 'price actual'
     y = data[target]
 
-    # Filtrar los datos históricos hasta start_date
     y_train = y[y.index <= start_date]
 
     # Fit SARIMA model to historical data up to start_date
     s = 7
     sar_model = SARIMAX(endog=y_train, order=(1, 0, 2), seasonal_order=(1, 1, 2, s)).fit()
 
-    # Generar el rango de fechas para las predicciones
     forecast_index = pd.date_range(start=start_date, periods=forecast_steps, freq='D')
 
-    # Hacer predicciones para el rango de fechas generado
     forecast = sar_model.forecast(steps=forecast_steps)
-    forecast.index = forecast_index  # Asignar el índice de pronóstico al rango de fechas
+    forecast.index = forecast_index
 
     # Plot actual values and predicted values
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -133,7 +130,7 @@ def visualize_forecast(start_date, forecast_steps):
     ax.set_xlabel('Date',fontsize=14, color='#1c0858')
     ax.set_ylabel('Electricity price',fontsize=14, color='#1c0858')
     ax.tick_params(axis='x', rotation=45, colors='#1c0858')
-    ax.tick_params(axis='y', rotation=45, colors='#1c0858')# Rotar las fechas en el eje x
+    ax.tick_params(axis='y', rotation=45, colors='#1c0858')
     ax.legend()
     st.pyplot(fig)
 

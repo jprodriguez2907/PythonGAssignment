@@ -54,9 +54,9 @@ def plot_predictions_ML(start_date, end_date, num_days_predicted):
 
     ax.plot(filtered_predictions_pred["date"], filtered_predictions_pred['predicted_energy_price'], label='Predicted Energy Price', color='#0d9240', linestyle='--',
              marker='x')
-    ax.set_title('Actual vs Predicted Energy Prices', fontsize=16, color='#1c0858')  # Title in larger size and white color
-    ax.set_xlabel('Date', fontsize=14, color='#1c0858') # X-axis label in larger size and white color
-    ax.set_ylabel('Energy Price', fontsize=14, color='#1c0858')  # Y-axis label in larger size and white color
+    ax.set_title('Actual vs Predicted Energy Prices', fontsize=16, color='#1c0858')
+    ax.set_xlabel('Date', fontsize=14, color='#1c0858')
+    ax.set_ylabel('Energy Price', fontsize=14, color='#1c0858')
     ax.tick_params(axis='x', colors='#1c0858')  # X-axis ticks in white color
     ax.tick_params(axis='y', colors='#1c0858')  # Y-axis ticks in white color
     ax.legend()
