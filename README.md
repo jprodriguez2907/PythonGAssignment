@@ -2,6 +2,7 @@
 Here is the link for the github repository: 
 https://github.com/jprodriguez2907/PythonGAssignment
 
+
 ## Project goal
 
 Accurate energy price predictions are valuable for businesses, policymakers and consumers. The goal of this proejct is to analyze trends in energy generation and to forecast energy prices, using different machine learning and statistical models. Additionally, this project provides a graphical user interface in a web app where users can view the results in an interactive way.
